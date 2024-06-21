@@ -1,24 +1,78 @@
 <></>
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import clsx from 'clsx';
+import { createKoder, getKoders, deleteKoder } from "./Api"
 
 export default function Koders() {
   const [koders,setKoders] = useState ([]);
 
-  const { register, handleSubmit, formState: { errors,isValid, isSubmitted}, reset } = useForm()
+  //recibe 2 parametros
+  // 1. Una funcion 
+  // 2. un arreglo de dependencias
+  //useEffect se usa para ejecutar cofigo en partes especificas del ciclo de vida de
+  //un componente
+  //useEffect se ejecuta en 2 momentos
+  //1. cuando el componente se renderiza por primera vez
+  //2. cuando alguna de las dependencias cambia 
+  useEffect(() => {
+    console.log("Hola")
+    getKoders()
+    .then((koders) => {
+      console.log ("Koders", koders);
+      setKoders(koders)
 
-  function removeKoder(indexToRemove) {
-    const newKoder = koders.filter(((koder,idx) => idx !== indexToRemove))
-    setKoders(newKoder)
+    })
+    .catch( (error) => {
+      console.error("Error al obtener koders", error);
+      alert("Error al obtener koders")
+    })
+  
+  }, [])
+
+  function onDelete (koderId) {
+    deleteKoder(koderId)
+    .then(() => {
+      getKoders ()
+      .then((koders) => {
+        setKoders(koders);
+      })
+      .catch ((error) => {
+        console.error("Error al obtener koders", error)
+        alert("Error al eliminar koder")
+      })
+    })
+    .catch ((error) => {
+      console.error("Error al eliminar Koder", error)
+      alert("Error al eliminar Koders")
+    })
+
   }
 
-  function onSubmit(data) {
-    setKoders ([
-      ...koders,
-      { name: data.name, lastName: data.lastName, email: data.email }
-    ])
-    reset()
+
+  const { register, handleSubmit, formState: { errors,isValid, isSubmitted}, reset, setFocus } = useForm()
+
+  /*function removeKoder(indexToRemove) {
+    const newKoder = koders.filter(((koder,idx) => idx !== indexToRemove))
+    setKoders(newKoder)
+  }*/
+
+  async function onSubmit(data) {
+    try {
+      await createKoder({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+    })
+
+    const kodersList = await getKoders ();
+    setKoders(kodersList);
+    setFocus("firstName")
+    reset();
+    } catch (error) {
+      console.error("Error al crear koder" , error)
+      alert("Error al crear koder")
+    }
   }
 
   return (
@@ -33,7 +87,7 @@ export default function Koders() {
         })}
         placeholder='Ingrese Nombre'
         required
-        { ...register ("name", {
+        { ...register ("firstName", {
           required: { value:true, message:"Necesitamos un nombre"},
           minLength: { value:2, message: "Si tienes un nombre de una sola letra no puedes, carnal"},
           maxLength: { value: 100, message:"te llamas Uvuvwevwevwe Onyetenyevwe Ugwemuhwem Osas?"}
@@ -87,9 +141,9 @@ export default function Koders() {
            koders.map((koder,idx) => {
             return (
               <div key={`koder-${idx}`} className='bg-white/70 text-black rounded p-4 flex flex-row justify-between items-center'>
-                <p>-{koder.name} {koder.lastName} </p>
-                <p>-{koder.email}</p>
-                <button className="text-red-500 hover:bg-red-500 hover:text-white rounded-full size-6 text-center" onClick={() => removeKoder(idx)}>X</button>
+                <p>🙎{koder.firstName} {koder.lastName} </p>
+                <p>✉️{koder.email}</p>
+                <button className="text-red-500 hover:bg-red-500 hover:text-white rounded-full size-6 text-center" onClick={() => onDelete(koder.id)}>X</button>
               </div>
             )
            })  
